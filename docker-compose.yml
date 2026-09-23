@@ -1,125 +1,47 @@
-services:
-  # API Only - Profile: api
-  api:
-    profiles: ["api"]
-    # Use pre-built image by default, or build locally with: docker compose --profile api build
-    image: openinary/openinary-api:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile: docker/api.Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      # Mount cache folder for persistence
-      - cache-data:/app/apps/api/cache
-      # Mount public folder for static files
-      - public-files:/app/apps/api/public
-      # Mount data folder for shared auth database
-      - db-data:/app/data
-    # Note: .env files are optional and loaded by init-env.js at runtime if they exist
-    environment:
-      - NODE_ENV=production
-      - MODE=api
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
-      - API_SECRET=${API_SECRET:-}
-      # IMAGE_TAG automatically mapped from IMAGE_TAG (single source of truth)
-      - IMAGE_TAG=${IMAGE_TAG:-latest}
-      # Video queue configuration
-      # VIDEO_MAX_CONCURRENT is auto-detected based on RAM (1 worker per 2GB)
-      # Override only if you need custom concurrency settings
-      - VIDEO_MAX_CONCURRENT=${VIDEO_MAX_CONCURRENT:-}
-      - VIDEO_JOB_RETRY_MAX=${VIDEO_JOB_RETRY_MAX:-3}
-      - VIDEO_JOB_CLEANUP_HOURS=${VIDEO_JOB_CLEANUP_HOURS:-24}
-      - VIDEO_WORKER_POLL_INTERVAL_MS=${VIDEO_WORKER_POLL_INTERVAL_MS:-1000}
-      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
-      # Initial Authentication configuration
-      - OPENINARY_ADMIN_NAME=${OPENINARY_ADMIN_NAME}
-      - OPENINARY_ADMIN_EMAIL=${OPENINARY_ADMIN_EMAIL}
-      - OPENINARY_ADMIN_PASSWORD=${OPENINARY_ADMIN_PASSWORD}
-      - OPENINARY_GENERATE_API_KEY=${OPENINARY_GENERATE_API_KEY:-true}
-    networks:
-      - openinary-network
-    # Resource limits to prevent video processing from crashing the server
-    # Dynamic allocation: configure via env vars or use defaults for 4GB+ systems
-    # For 16GB+ systems: DOCKER_MEMORY_LIMIT=12G DOCKER_CPU_LIMIT=4.0
-    deploy:
-      resources:
-        limits:
-          cpus: '${DOCKER_CPU_LIMIT:-2.0}'
-          memory: ${DOCKER_MEMORY_LIMIT:-4G}
-        reservations:
-          cpus: '${DOCKER_CPU_RESERVATION:-0.5}'
-          memory: ${DOCKER_MEMORY_RESERVATION:-1G}
+openinary:
+  profiles: ["full"]
 
-  # Full Stack (API + Web + Nginx) - Profile: full
-  openinary:
-    profiles: ["full"]
-    # Use pre-built image by default, or build locally with: docker compose --profile full build
-    image: openinary/openinary:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile: docker/full.Dockerfile
-      args:
-        # NEXT_PUBLIC_API_BASE_URL is needed at build time
-        # CORS is handled at runtime in Next.js middleware
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
-        # IMAGE_TAG is baked into the image at build time (written to /app/version.txt)
-        IMAGE_TAG: ${IMAGE_TAG:-latest}
-    ports:
-      - "3000:3000"
-    volumes:
-      # Mount cache folder for persistence
-      - cache-data:/app/apps/api/cache
-      # Mount public folder for static files
-      - public-files:/app/apps/api/public
-      # Mount shared data folder for auth database persistence
-      - db-data:/app/data
-      # Also mount for web standalone path (for backwards compatibility)
-      - db-data:/app/web-standalone/data
-    # Note: .env files are optional and loaded by init-env.js at runtime if they exist
-    environment:
-      - NODE_ENV=production
-      - MODE=fullstack
-      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-/api}
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
-      - BETTER_AUTH_INTERNAL_URL=${BETTER_AUTH_INTERNAL_URL:-http://127.0.0.1:3001}
-      - API_SECRET=${API_SECRET:-}
-      # IMAGE_TAG automatically mapped from IMAGE_TAG (single source of truth)
-      - IMAGE_TAG=${IMAGE_TAG:-latest}
-      # Video queue configuration
-      # VIDEO_MAX_CONCURRENT is auto-detected based on RAM (1 worker per 2GB)
-      # Override only if you need custom concurrency settings
-      - VIDEO_MAX_CONCURRENT=${VIDEO_MAX_CONCURRENT:-}
-      - VIDEO_JOB_RETRY_MAX=${VIDEO_JOB_RETRY_MAX:-3}
-      - VIDEO_JOB_CLEANUP_HOURS=${VIDEO_JOB_CLEANUP_HOURS:-24}
-      - VIDEO_WORKER_POLL_INTERVAL_MS=${VIDEO_WORKER_POLL_INTERVAL_MS:-1000}
-      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
-      # Initial Authentication configuration
-      - OPENINARY_ADMIN_NAME=${OPENINARY_ADMIN_NAME}
-      - OPENINARY_ADMIN_EMAIL=${OPENINARY_ADMIN_EMAIL}
-      - OPENINARY_ADMIN_PASSWORD=${OPENINARY_ADMIN_PASSWORD}
-      - OPENINARY_GENERATE_API_KEY=${OPENINARY_GENERATE_API_KEY:-false}
-    networks:
-      - openinary-network
-    # Resource limits to prevent video processing from crashing the server
-    # Dynamic allocation: configure via env vars or use defaults for 4GB+ systems
-    # For 16GB+ systems: DOCKER_MEMORY_LIMIT=12G DOCKER_CPU_LIMIT=4.0
-    deploy:
-      resources:
-        limits:
-          cpus: '${DOCKER_CPU_LIMIT:-2.0}'
-          memory: ${DOCKER_MEMORY_LIMIT:-4G}
-        reservations:
-          cpus: '${DOCKER_CPU_RESERVATION:-0.5}'
-          memory: ${DOCKER_MEMORY_RESERVATION:-1G}
+  image: openinary/openinary:${IMAGE_TAG:-latest}
 
-networks:
-  openinary-network:
-    driver: bridge
+  build:
+    context: .
+    dockerfile: docker/full.Dockerfile
+    args:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+      IMAGE_TAG: ${IMAGE_TAG:-latest}
 
-volumes:
-  cache-data:
-  public-files:
-  db-data:
+  expose:
+    - "3000"
+
+  volumes:
+    - cache-data:/app/apps/api/cache
+    - public-files:/app/apps/api/public
+    - db-data:/app/data
+    - db-data:/app/web-standalone/data
+
+  environment:
+    - NODE_ENV=production
+    - MODE=fullstack
+    - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-/api}
+    - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+    - BETTER_AUTH_URL=${BETTER_AUTH_URL}
+    - BETTER_AUTH_INTERNAL_URL=http://127.0.0.1:3001
+    - API_SECRET=${API_SECRET}
+    - IMAGE_TAG=${IMAGE_TAG:-latest}
+    - VIDEO_MAX_CONCURRENT=${VIDEO_MAX_CONCURRENT:-}
+    - VIDEO_JOB_RETRY_MAX=${VIDEO_JOB_RETRY_MAX:-3}
+    - VIDEO_JOB_CLEANUP_HOURS=${VIDEO_JOB_CLEANUP_HOURS:-24}
+    - VIDEO_WORKER_POLL_INTERVAL_MS=${VIDEO_WORKER_POLL_INTERVAL_MS:-1000}
+    - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
+
+  networks:
+    - openinary-network
+
+  deploy:
+    resources:
+      limits:
+        cpus: "${DOCKER_CPU_LIMIT:-2.0}"
+        memory: ${DOCKER_MEMORY_LIMIT:-4G}
+      reservations:
+        cpus: "${DOCKER_CPU_RESERVATION:-0.5}"
+        memory: ${DOCKER_MEMORY_RESERVATION:-1G}
