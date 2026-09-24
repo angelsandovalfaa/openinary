@@ -13,7 +13,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useSession } from "@/lib/auth-client";
 import { MediaGrid, type MediaFile } from "@openinary/ui";
 import { useRouter } from "next/navigation";
-import { parseAsString, useQueryState } from "nuqs";
+import { parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
 import { Suspense, useEffect, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 
@@ -37,6 +37,10 @@ function HomePageContent() {
   const [assetId, setAssetId] = useQueryState(
     "asset",
     parseAsString.withOptions({ clearOnDefault: true }),
+  );
+  const [mediaType] = useQueryState(
+    "type",
+    parseAsStringLiteral(["image", "video"] as const),
   );
   const [folderPath, setFolderPath] = useQueryState("folder");
   const [assetSidebarOpen, setAssetSidebarOpen] = useState(false);
@@ -95,7 +99,7 @@ function HomePageContent() {
 
   return (
     <>
-      <AppSidebar onMediaSelect={handleMediaSelect} />
+      <AppSidebar onMediaSelect={handleMediaSelect} mediaType={mediaType} />
       <SidebarInset>
         <div ref={panelGroupRef} className="h-screen w-full">
           <ResizablePanelGroup direction="horizontal" className="h-screen">
@@ -105,6 +109,7 @@ function HomePageContent() {
               id="main-panel"
             >
               <HeaderBar
+                mediaType={mediaType}
                 columns={columns}
                 onColumnsChange={handleColumnsChange}
                 view={view}
@@ -115,6 +120,8 @@ function HomePageContent() {
                 className="px-4 sm:px-6 py-6 sm:py-8 space-y-6 overflow-auto h-[calc(100vh-64px)] overflow-y-scoll"
               >
                 <MediaGrid
+                  key={`${mediaType ?? "all"}:${folderPath ?? ""}`}
+                  mediaType={mediaType}
                   onMediaSelect={handleMediaSelect}
                   sidebarOpen={assetSidebarOpen}
                   columns={columns}

@@ -15,9 +15,11 @@ import {
   type StorageFile,
   type StorageFolder,
   type MediaFile,
+  type MediaType,
 } from "@openinary/ui";
 
 interface LazyStorageTreeProps {
+  mediaType?: MediaType | null;
   onMediaSelect?: (media: MediaFile) => void;
 }
 
@@ -72,9 +74,11 @@ function LazyFolderNode({
   folder,
   depth,
   onMediaSelect,
+  mediaType,
 }: {
   folder: StorageFolder;
   depth: number;
+  mediaType?: MediaType | null;
   onMediaSelect?: (media: MediaFile) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -107,6 +111,7 @@ function LazyFolderNode({
           path={folder.path}
           depth={depth + 1}
           onMediaSelect={onMediaSelect}
+          mediaType={mediaType}
         />
       )}
     </li>
@@ -117,13 +122,15 @@ function LazyTreeLevel({
   path,
   depth,
   onMediaSelect,
+  mediaType,
 }: {
   path: string;
   depth: number;
+  mediaType?: MediaType | null;
   onMediaSelect?: (media: MediaFile) => void;
 }) {
   // Shares the ["storage-tree", path] cache with the media grid
-  const { data, isLoading, error } = useStorageLevel(path);
+  const { data, isLoading, error } = useStorageLevel(path, mediaType);
 
   if (isLoading) {
     return <LevelSkeleton depth={depth} />;
@@ -158,6 +165,7 @@ function LazyTreeLevel({
           folder={folder}
           depth={depth}
           onMediaSelect={onMediaSelect}
+          mediaType={mediaType}
         />
       ))}
       {data.files.map((file) => (
@@ -172,6 +180,6 @@ function LazyTreeLevel({
   );
 }
 
-export function LazyStorageTree({ onMediaSelect }: LazyStorageTreeProps) {
-  return <LazyTreeLevel path="" depth={0} onMediaSelect={onMediaSelect} />;
+export function LazyStorageTree({ onMediaSelect, mediaType }: LazyStorageTreeProps) {
+  return <LazyTreeLevel path="" depth={0} onMediaSelect={onMediaSelect} mediaType={mediaType} />;
 }

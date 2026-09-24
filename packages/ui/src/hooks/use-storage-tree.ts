@@ -3,7 +3,7 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { useOpeninary } from "../provider/openinary-provider";
 import { getMediaType } from "../media-type";
-import type { StorageFolder, StorageFile, StorageLevel } from "../types";
+import type { MediaType, StorageFolder, StorageFile, StorageLevel } from "../types";
 
 export type { StorageFolder, StorageFile, StorageLevel } from "../types";
 
@@ -18,11 +18,15 @@ type ApiLevelResponse = {
  * The "storage-tree" key prefix is shared by every level so blanket
  * invalidation refreshes all mounted levels.
  */
-export function useStorageLevel(path: string) {
+export function useStorageLevel(path: string, mediaType?: MediaType | null) {
   const { apiBaseUrl, fetch } = useOpeninary();
 
   return useQuery({
     queryKey: ["openinary", "storage-tree", apiBaseUrl, path],
+    // Filter the observer result, keeping the shared cache complete.
+    select: (level) => mediaType
+      ? { ...level, files: level.files.filter((file) => file.type === mediaType) }
+      : level,
     queryFn: async (): Promise<StorageLevel> => {
       const res = await fetch(`${apiBaseUrl}/storage?path=${encodeURIComponent(path)}`);
 

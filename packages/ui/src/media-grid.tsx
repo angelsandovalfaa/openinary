@@ -63,7 +63,7 @@ import { CreateFolderButtonWithDialog } from "./components/create-folder-button-
 import { UploadSection } from "./components/upload-section";
 import { CreateFolderSection } from "./components/create-folder-section";
 import { BulkActionBarContent } from "./components/bulk-action-bar";
-import type { MediaFile } from "./types";
+import type { MediaFile, MediaType } from "./types";
 
 const MIME_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
@@ -152,6 +152,8 @@ function getFolderThumbnailUrl(
 export interface MediaGridProps {
   onMediaSelect: (media: MediaFile) => void;
   sidebarOpen?: boolean;
+  /** Show only this media type while preserving folder navigation. */
+  mediaType?: MediaType | null;
   onUploadClick?: () => void;
   columns?: number;
   view?: "grid" | "list";
@@ -170,6 +172,7 @@ export interface MediaGridProps {
 export function MediaGrid({
   onMediaSelect,
   sidebarOpen = false,
+  mediaType,
   columns = 6,
   view = "grid",
   scrollContainerRef,
@@ -272,7 +275,7 @@ export function MediaGrid({
   const currentDir = pathSegments.join("/");
 
   // Current level, loaded lazily per folder (sorted server-side)
-  const { data: level, isLoading, error } = useStorageLevel(currentDir);
+  const { data: level, isLoading, error } = useStorageLevel(currentDir, mediaType);
   const folders = useMemo(() => level?.folders ?? [], [level]);
   const files = useMemo(() => level?.files ?? [], [level]);
 
@@ -386,6 +389,15 @@ export function MediaGrid({
           .map((entry) => entry.path);
   const folderSummaries = useFolderSummaries(visibleFolderPaths);
 
+  // Never keep hidden items selected when navigating or changing type.
+  useEffect(() => {
+    setSelection(new Map());
+    toast.dismiss(BULK_TOAST_ID);
+    if (scrollContainerRef?.current) scrollContainerRef.current.scrollTop = 0;
+  }, [currentDir, mediaType, scrollContainerRef]);
+
+  useEffect(() => () => { toast.dismiss(BULK_TOAST_ID); }, []);
+
   // Keep the floating bulk-action bar in sync with the current selection by
   // rendering it as a persistent toast (fixed id, infinite duration) so it
   // stacks with regular toasts instead of floating independently. Must run
@@ -449,10 +461,11 @@ export function MediaGrid({
             <EmptyMedia variant="icon">
               <FileImage />
             </EmptyMedia>
-            <EmptyTitle>No Media Files Yet</EmptyTitle>
+            <EmptyTitle>{mediaType ? `No ${mediaType === "image" ? "Images" : "Videos"} Found` : "No Media Files Yet"}</EmptyTitle>
             <EmptyDescription>
-              You haven&apos;t uploaded any media files yet. Get started by
-              uploading your first image or video.
+              {mediaType
+                ? `There are no ${mediaType === "image" ? "images" : "videos"} in this folder.`
+                : "You haven't uploaded any media files yet. Get started by uploading your first image or video."}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
@@ -1578,6 +1591,12 @@ export function MediaGrid({
               </div>
             )}
 
+            {mediaType && files.length === 0 && (
+              <p role="status" className="py-8 text-center text-sm text-muted-foreground">
+                No {mediaType === "image" ? "images" : "videos"} in this folder.
+                {folders.length > 0 && " Open a folder to browse its files."}
+              </p>
+            )}
             {files.length > 0 && view === "grid" && (
               <div
                 ref={gridWrapperRef}

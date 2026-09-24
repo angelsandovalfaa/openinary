@@ -2,7 +2,7 @@
 
 import { LayoutGrid, List } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { ColumnCountSlider, DeleteFolderButton, UploadButtonWithDialog } from "@openinary/ui";
+import { type MediaType, ColumnCountSlider, DeleteFolderButton, UploadButtonWithDialog } from "@openinary/ui";
 import { Button } from "./ui/button";
 import {
   Breadcrumb,
@@ -17,11 +17,13 @@ import { SidebarTrigger } from "./ui/sidebar";
 
 export default function HeaderBar({
   columns,
+  mediaType,
   onColumnsChange,
   view = "grid",
   onViewChange,
 }: {
   columns: number;
+  mediaType?: MediaType | null;
   onColumnsChange: (columns: number) => void;
   view?: "grid" | "list";
   onViewChange?: (view: "grid" | "list") => void;
@@ -44,7 +46,7 @@ export default function HeaderBar({
                   onClick={() => setFolderPath(null)}
                   className="cursor-pointer"
                 >
-                  Assets
+                  {mediaType === "image" ? "Images" : mediaType === "video" ? "Videos" : "Assets"}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               {folderPath &&

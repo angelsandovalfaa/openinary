@@ -7,7 +7,7 @@ import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
 import { NavUser } from "@/components/sidebar/nav-user";
 import { VersionDisplay } from "@/components/sidebar/version-display";
-import type { MediaFile } from "@openinary/ui";
+import type { MediaFile, MediaType } from "@openinary/ui";
 import {
   Sidebar,
   SidebarContent,
@@ -18,35 +18,36 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 
-// This is sample data.
+// Each media view is addressable and survives refreshes.
 const data = {
   navMain: [
     {
       title: "Assets",
       url: "/",
       icon: Package,
-      isActive: true,
+      mediaType: null,
     },
     {
       title: "Image",
-      url: "/",
+      url: "/?type=image",
       icon: ImageIcon,
-      disabled: true,
+      mediaType: "image",
     },
     {
       title: "Video",
-      url: "/",
+      url: "/?type=video",
       icon: Video,
-      disabled: true,
+      mediaType: "video",
     },
   ],
 };
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  mediaType?: MediaType | null;
   onMediaSelect?: (media: MediaFile) => void;
 }
 
-export function AppSidebar({ onMediaSelect, ...props }: AppSidebarProps) {
+export function AppSidebar({ onMediaSelect, mediaType = null, ...props }: AppSidebarProps) {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -71,8 +72,8 @@ export function AppSidebar({ onMediaSelect, ...props }: AppSidebarProps) {
             "linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent)",
         }}
       >
-        <NavMain items={data.navMain} />
-        <NavProjects onMediaSelect={onMediaSelect} />
+        <NavMain items={data.navMain.map((item) => ({ ...item, isActive: item.mediaType === mediaType }))} />
+        <NavProjects onMediaSelect={onMediaSelect} mediaType={mediaType} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
