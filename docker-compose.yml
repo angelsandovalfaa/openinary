@@ -1,6 +1,6 @@
 services:
   openinary:
-    image: openinary/openinary:${IMAGE_TAG:-latest}
+    image: docker.io/angelsandoval93/sae-openinary:${IMAGE_TAG:-latest}
     pull_policy: always
     restart: unless-stopped
 

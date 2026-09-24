@@ -11,6 +11,13 @@ on:
       - 'v*'
     paths:
       - 'docker/**'
+      - 'docker-compose.yml'
+      - 'docker.env.example'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'patches/**'
       - 'apps/**'
       - 'packages/**'
       - '.github/workflows/basebuild.yml'
@@ -30,8 +37,8 @@ on:
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   REGISTRY: docker.io
-  IMAGE_FULL: openinary/openinary
-  IMAGE_API: openinary/openinary-api
+  IMAGE_FULL: angelsandoval93/sae-openinary
+  IMAGE_API: angelsandoval93/sae-openinary-api
 
 jobs:
   determine-version:
@@ -45,6 +52,15 @@ jobs:
       patch: ${{ steps.semver.outputs.patch }}
       major_minor: ${{ steps.semver.outputs.major_minor }}
     steps:
+      - name: Validate Docker Hub credentials
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
+            echo "::error::Set the DOCKER_USERNAME and DOCKER_PASSWORD repository secrets. Use a Docker Hub access token as DOCKER_PASSWORD."
+            exit 1
+          fi
+
       - name: Determine version tag
         id: version
         run: |
@@ -65,10 +81,10 @@ jobs:
             echo "is_release=true" >> $GITHUB_OUTPUT
             echo "is_preview=false" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            # Push to main branch = preview build
-            echo "version=preview" >> $GITHUB_OUTPUT
+            # The deployment pulls latest, so every successful main build updates it.
+            echo "version=latest" >> $GITHUB_OUTPUT
             echo "is_release=false" >> $GITHUB_OUTPUT
-            echo "is_preview=true" >> $GITHUB_OUTPUT
+            echo "is_preview=false" >> $GITHUB_OUTPUT
           else
             echo "version=latest" >> $GITHUB_OUTPUT
             echo "is_release=false" >> $GITHUB_OUTPUT
